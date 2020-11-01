@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace GCMemoryOptimization
 {
@@ -9,14 +10,13 @@ namespace GCMemoryOptimization
         static void Main(string[] args)
         {
             //StringAppend();
-            //FitTheRulesExample();
-            //ListExample();
-            //EvenAndOddNumbersExample();
+            //InitializeBeforeUse();
+            //SetCollectionsSize();
+            //ReuseCollections();
             //BoxingExample();
-            //LineExample();
-            //LinqExample();
-            Finalyzers();
-
+            //ClassVsStruct();
+            //ToListInsideLinq();
+            //Finalyzers();
             GC.Collect(); //To be sure that collection happened
         }
 
@@ -24,38 +24,40 @@ namespace GCMemoryOptimization
         {
             for (int i = 0; i < 1000; i++)
             {
-                var o = new NoFinalyzerObject(i);
+                var o = new FinalyzerObject(i);
                 int id = o.Id;
                 //o.Dispose();
             }
         }
 
-        private static void LinqExample()
+        private static void ToListInsideLinq()
         {
-            var numbers = Enumerable.Range(0, 100000).Where(e => e % 2 == 1);
+            var numbers = Enumerable.Range(0, 100000).Where(e => e % 2 == 1).ToList();
+
             Random rand = new Random();
             var randomNumbers = new List<int>();
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 10000; i++)
             {
                 randomNumbers.Add(rand.Next());
             }
 
-            randomNumbers = randomNumbers.Where(x => numbers.ToList().Contains(x)).ToList();
+            randomNumbers = randomNumbers.Where(x => numbers.Contains(x)).ToList();
         }
 
-        private static void LineExample()
+        private static void ClassVsStruct()
         {
             const int count = 10000;
-            var lines = new List<StraightLine>(count);
+            var lines = new List<StraightLineStruct>(count);
             Random rand = new Random();
             for (int i = 0; i < count; i++)
             {
                 //y = ax+b
-                lines.Add(new StraightLine { A = rand.Next(-100, 100) / 100, B = rand.Next(-100, 100) });
+                var line = new StraightLineStruct { A = rand.Next(-100, 100) / 100, B = rand.Next(-100, 100) };
+                lines.Add(line);
             }
             lines = lines.Where(DoesLinePassesThroughThePoint).ToList();
 
-            bool DoesLinePassesThroughThePoint(StraightLine line)
+            bool DoesLinePassesThroughThePoint(StraightLineStruct line)
             {
                 var x = 1;
                 var y = 1;
@@ -67,43 +69,43 @@ namespace GCMemoryOptimization
         {
             var bElements = Enumerable.Range(0, 100000).Where(e => HasNegativeHashCode(e)).ToList();
 
-            bool HasNegativeHashCode(object element)
+            bool HasNegativeHashCode<T>(T element)
             {
                 return element.GetHashCode() < 0;
             }
         }
 
-        private static void ListExample()
+        private static void SetCollectionsSize()
         {
-            var evenNumbers = new List<int>();
-            for (int i = 0; i < 1000000; i++)
+            int count = 10000;
+            var evenNumbers = new List<int>(count/2);
+            for (int i = 0; i < count; i++)
             {
                 if (i % 2 == 0)
                     evenNumbers.Add(i);
             }
         }
 
-        private static void EvenAndOddNumbersExample()
+        private static void ReuseCollections()
         {
-            var evenNumbers = new List<int>(500000);
+            var numbers = new List<int>(500000);
             for (int i = 0; i < 1000000; i++)
             {
                 if (i % 2 == 0)
-                    evenNumbers.Add(i);
+                    numbers.Add(i);
             }
 
-            var oddNumbers = new List<int>(500000);
+            //var oddNumbers = new List<int>(500000);
+            numbers.Clear();
             for (int i = 0; i < 1000000; i++)
             {
                 if (i % 2 == 1)
-                    oddNumbers.Add(i);
+                    numbers.Add(i);
             }
         }
 
-        private static void FitTheRulesExample()
+        private static void InitializeBeforeUse()
         {
-            Point o = new Point { X = 1 };
-
             //some long lasting operation
             string s = string.Empty;
             for(int i=0; i<2000; i++)
@@ -111,15 +113,16 @@ namespace GCMemoryOptimization
                 s += "" + i.ToString();
             }
 
+            Point o = new Point { X = 1 };
             Console.WriteLine(o.X);
         }
 
         private static void StringAppend()
         {
-            string s = string.Empty;
-            Enumerable.Range(0, 10000).ToList().ForEach(x => s += ".");
-            //StringBuilder sb = new StringBuilder("");
-            //Enumerable.Range(0, 10000).ToList().ForEach(x => sb.Append("."));
+            //string s = string.Empty;
+            //Enumerable.Range(0, 10000).ToList().ForEach(x => s += ".");
+            StringBuilder sb = new StringBuilder("");
+            Enumerable.Range(0, 10000).ToList().ForEach(x => sb.Append("."));
         }
     }
 }
